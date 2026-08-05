@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-gateway"
+version = "0.1.0"
+description = "A lightweight LLM API gateway (FastAPI): provider routing, response caching, retries with backoff, and token/cost accounting."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Matthews Wong" }]
+keywords = ["llm", "gateway", "fastapi", "routing", "cache", "anthropic"]
+
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.6",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+# Real Anthropic backend (model "claude-sonnet-5"); optional and offline-safe.
+anthropic = ["anthropic>=0.40"]
+# Test + lint tooling.
+dev = ["pytest>=8.0", "ruff>=0.4"]
+
+[tool.setuptools.packages.find]
+include = ["aigateway*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
