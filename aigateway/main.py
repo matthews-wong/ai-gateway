@@ -3,7 +3,7 @@
 Endpoints:
   * ``POST /v1/complete`` -- route -> cache -> provider (with retries) -> accounting
   * ``GET  /health``      -- liveness probe
-  * ``GET  /usage``       -- token/cost accounting, per key and in total
+  * ``GET  /usage``       -- token/cost accounting, per key, per model, and in total
 
 ``create_app`` is a factory so every collaborator (providers, router, cache,
 accountant, retry settings, sleep) can be injected -- which is what keeps the
@@ -118,6 +118,7 @@ def create_app(
         )
         accountant.record(
             api_key,
+            model=payload.model,
             input_tokens=result.input_tokens,
             output_tokens=result.output_tokens,
             cost_usd=cost,

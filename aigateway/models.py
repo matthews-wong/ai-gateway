@@ -53,3 +53,4 @@ class UsageReport(BaseModel):
 
     totals: KeyUsage
     per_key: dict[str, KeyUsage]
+    per_model: dict[str, KeyUsage]

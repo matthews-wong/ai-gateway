@@ -46,7 +46,7 @@ flowchart LR
 
 - `POST /v1/complete` — `{ model, prompt, max_tokens?, temperature? }` → completion + usage.
 - `GET /health` — liveness probe.
-- `GET /usage` — token/cost accounting, per key (`X-API-Key`) and in total.
+- `GET /usage` — token/cost accounting, per key (`X-API-Key`), per model, and in total.
 - Pluggable cache (in-memory TTL default) keyed by a stable `hashlib.sha256` of the request.
 - Retry/backoff with an **injectable sleep** for deterministic tests.
 - Injectable `Provider` protocol; deterministic `MockProvider`; documented `AnthropicProvider`.
@@ -103,6 +103,9 @@ curl -s http://localhost:8000/usage
   "totals": { "requests": 1, "input_tokens": 4, "output_tokens": 13, "total_tokens": 17, "cost_usd": 0.00001725 },
   "per_key": {
     "demo-key": { "requests": 1, "input_tokens": 4, "output_tokens": 13, "total_tokens": 17, "cost_usd": 0.00001725 }
+  },
+  "per_model": {
+    "mock-small": { "requests": 1, "input_tokens": 4, "output_tokens": 13, "total_tokens": 17, "cost_usd": 0.00001725 }
   }
 }
 ```
@@ -129,7 +132,7 @@ ai-gateway/
 │   ├── router.py         # pick a provider by model/policy
 │   ├── cache.py          # stable request hash + in-memory TTL cache (injectable clock)
 │   ├── providers.py      # Provider protocol + MockProvider + AnthropicProvider
-│   ├── accounting.py     # token estimate + cost table + per-key aggregation
+│   ├── accounting.py     # token estimate + cost table + per-key/per-model aggregation
 │   ├── backoff.py        # retry with exponential backoff (injectable sleep)
 │   └── models.py         # pydantic request/response schemas
 ├── tests/                # pytest, offline, MockProvider only
@@ -154,7 +157,7 @@ pytest            # offline; MockProvider only; no network, no real sleeps
 ruff check .      # lint
 ```
 
-Coverage highlights: routing picks the right provider; an identical request is served from cache on the second call (plus TTL expiry via an injected clock); a flaky provider retries then succeeds; usage/cost accounting sums correctly per key and in total.
+Coverage highlights: routing picks the right provider; an identical request is served from cache on the second call (plus TTL expiry via an injected clock); a flaky provider retries then succeeds; usage/cost accounting sums correctly per key, per model, and in total.
 
 ## Roadmap
 

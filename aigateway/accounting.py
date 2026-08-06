@@ -63,6 +63,23 @@ def cost_for(
     return round(cost, 8)
 
 
+def _add(
+    current: KeyUsage | None,
+    input_tokens: int,
+    output_tokens: int,
+    cost_usd: float,
+) -> KeyUsage:
+    """Return ``current`` (or a zero bucket) with one request's usage folded in."""
+    acc = current or KeyUsage()
+    return KeyUsage(
+        requests=acc.requests + 1,
+        input_tokens=acc.input_tokens + input_tokens,
+        output_tokens=acc.output_tokens + output_tokens,
+        total_tokens=acc.total_tokens + input_tokens + output_tokens,
+        cost_usd=round(acc.cost_usd + cost_usd, 8),
+    )
+
+
 class UsageAccountant:
     """Thread-safe aggregation of usage and cost, per API key.
 
@@ -73,32 +90,39 @@ class UsageAccountant:
     def __init__(self) -> None:
         self._lock = Lock()
         self._per_key: dict[str, KeyUsage] = {}
+        self._per_model: dict[str, KeyUsage] = {}
 
     def record(
         self,
         key: str,
         *,
+        model: str,
         input_tokens: int,
         output_tokens: int,
         cost_usd: float,
     ) -> None:
-        """Add one request's usage to the running totals for ``key``."""
+        """Add one request's usage to the running totals for ``key`` and ``model``.
+
+        The same request is counted into two independent breakdowns -- by API
+        key (who spent) and by model (where it went) -- so ``/usage`` can answer
+        both questions from one recording.
+        """
         with self._lock:
-            acc = self._per_key.get(key) or KeyUsage()
-            acc = KeyUsage(
-                requests=acc.requests + 1,
-                input_tokens=acc.input_tokens + input_tokens,
-                output_tokens=acc.output_tokens + output_tokens,
-                total_tokens=acc.total_tokens + input_tokens + output_tokens,
-                cost_usd=round(acc.cost_usd + cost_usd, 8),
+            self._per_key[key] = _add(
+                self._per_key.get(key), input_tokens, output_tokens, cost_usd
             )
-            self._per_key[key] = acc
+            self._per_model[model] = _add(
+                self._per_model.get(model), input_tokens, output_tokens, cost_usd
+            )
 
     def report(self) -> UsageReport:
-        """Return a snapshot with per-key breakdown and a summed ``totals``."""
+        """Return a snapshot with per-key and per-model breakdowns plus ``totals``."""
         with self._lock:
             per_key = {k: v.model_copy() for k, v in self._per_key.items()}
+            per_model = {m: v.model_copy() for m, v in self._per_model.items()}
 
+        # Totals are summed over the per-key breakdown; per-model sums to the
+        # same figures (every request lands in exactly one bucket of each).
         totals = KeyUsage()
         for usage in per_key.values():
             totals = KeyUsage(
@@ -108,4 +132,4 @@ class UsageAccountant:
                 total_tokens=totals.total_tokens + usage.total_tokens,
                 cost_usd=round(totals.cost_usd + usage.cost_usd, 8),
             )
-        return UsageReport(totals=totals, per_key=per_key)
+        return UsageReport(totals=totals, per_key=per_key, per_model=per_model)
