@@ -65,3 +65,34 @@ def test_cache_hit_sets_cached_flag_without_mutating_stored_value():
     # Fetching again still reports a hit (stored copy untouched).
     again = cache.get("k")
     assert again is not None and again.cached is True
+
+
+def test_eviction_bounds_size_and_drops_oldest():
+    # A bounded cache must never exceed max_entries, and eviction targets the
+    # entry with the nearest expiry (the oldest under a uniform TTL).
+    now = {"t": 0.0}
+    cache = InMemoryTTLCache(ttl_seconds=100.0, clock=lambda: now["t"], max_entries=2)
+
+    cache.set("a", _response("a"))
+    now["t"] = 1.0
+    cache.set("b", _response("b"))
+    now["t"] = 2.0
+    cache.set("c", _response("c"))  # over capacity -> evicts the oldest ("a")
+
+    assert cache.get("a") is None  # evicted
+    assert cache.get("b") is not None  # retained
+    assert cache.get("c") is not None  # newest, retained
+
+
+def test_resetting_existing_key_does_not_evict():
+    # Overwriting a key updates it in place; it must not trigger eviction or
+    # grow the store, so a co-resident key survives.
+    cache = InMemoryTTLCache(ttl_seconds=100.0, clock=lambda: 0.0, max_entries=2)
+    cache.set("a", _response("a1"))
+    cache.set("b", _response("b1"))
+    cache.set("a", _response("a2"))  # in-place update, not a new entry
+
+    b = cache.get("b")
+    assert b is not None  # not evicted by the overwrite
+    a = cache.get("a")
+    assert a is not None and a.completion == "a2"  # value replaced

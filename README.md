@@ -88,7 +88,7 @@ curl -s http://localhost:8000/v1/complete \
   "provider": "mock",
   "completion": "[mock:mock-small] (a1b2c3d4) You said: Hello, gateway!",
   "cached": false,
-  "usage": { "input_tokens": 4, "output_tokens": 13, "total_tokens": 17, "cost_usd": 0.00001725 }
+  "usage": { "input_tokens": 4, "output_tokens": 14, "total_tokens": 18, "cost_usd": 0.0000185 }
 }
 ```
 
@@ -100,12 +100,12 @@ curl -s http://localhost:8000/usage
 
 ```json
 {
-  "totals": { "requests": 1, "input_tokens": 4, "output_tokens": 13, "total_tokens": 17, "cost_usd": 0.00001725 },
+  "totals": { "requests": 1, "input_tokens": 4, "output_tokens": 14, "total_tokens": 18, "cost_usd": 0.0000185 },
   "per_key": {
-    "demo-key": { "requests": 1, "input_tokens": 4, "output_tokens": 13, "total_tokens": 17, "cost_usd": 0.00001725 }
+    "demo-key": { "requests": 1, "input_tokens": 4, "output_tokens": 14, "total_tokens": 18, "cost_usd": 0.0000185 }
   },
   "per_model": {
-    "mock-small": { "requests": 1, "input_tokens": 4, "output_tokens": 13, "total_tokens": 17, "cost_usd": 0.00001725 }
+    "mock-small": { "requests": 1, "input_tokens": 4, "output_tokens": 14, "total_tokens": 18, "cost_usd": 0.0000185 }
   }
 }
 ```
